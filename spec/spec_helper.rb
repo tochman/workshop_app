@@ -9,6 +9,7 @@ require 'rspec'
 require 'dm-rspec'
 require 'database_cleaner'
 
+DataMapper.auto_migrate!
 
 RSpec.configure do |config|
   config.include Capybara::DSL

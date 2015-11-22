@@ -1,14 +1,18 @@
 require 'sinatra/base'
 require 'padrino-helpers'
 require 'data_mapper'
+require './lib/csv_parse'
 require './lib/course'
 require './lib/user'
 require './lib/delivery'
+require './lib/student'
+require './lib/certificate'
 require 'pry'
 
 
 
 class WorkshopApp < Sinatra::Base
+  include CSVParse
   register Padrino::Helpers
   set :protect_from_csrf, true
   enable :sessions
@@ -73,6 +77,26 @@ class WorkshopApp < Sinatra::Base
     course = Course.get(params[:course_id])
     course.deliveries.create(start_date: params[:start_date])
     redirect 'courses/index'
+  end
+
+  get '/courses/delivery/show/:id', auth: :user do
+    @delivery = Delivery.get(params[:id].to_i)
+    erb :'courses/deliveries/show'
+  end
+
+  post '/courses/deliveries/file_upload' do
+    @delivery = Delivery.get(params[:id])
+    CSVParse.import(params[:file][:tempfile], Student, @delivery)
+    redirect "/courses/delivery/show/#{@delivery.id}"
+  end
+
+  get '/courses/generate/:id' do
+    @delivery = Delivery.get(params[:id])
+    @delivery.students.each do |student|
+      c = student.certificates.new(created_at: DateTime.now, delivery: @delivery)
+      c.save
+    end
+    redirect "/courses/delivery/show/#{@delivery.id}"
   end
 
   # User routes
